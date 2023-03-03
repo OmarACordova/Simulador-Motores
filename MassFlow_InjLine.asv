@@ -1,0 +1,208 @@
+function [mOx, mFu]=MassFlow_InjLine(PoOx, PoFu,Pc, TOx, Pumbling)
+    DLineOx=Pumbling(1)
+    DLineFu=Pumbling(2)
+    LLineOx=Pumbling(3)
+    LLineFu=Pumbling(4)
+    Mul_Ox=Pumbling(5)
+    Mul_Fu=Pumbling(6)
+    kLineFu=Pumbling(7)
+    kLineOx=Pumbling(8)
+    Cpl=Pumbling(9)
+    RolFu=Pumbling(10)
+    Cd=Pumbling(11)
+    AInjOx=Pumbling(12)
+    AInjFu=Pumbling(13)
+    ALineOx=3.14*.25*DLineOx^2;
+    ALineFu=3.14*.25*DLineFu^2;
+
+    Te1=TOx;
+    PNos0=2.792*TOx^3 + -1527*TOx^2 + 2.898e+05*TOx + -1.899e+07 % Presion de Vapor en el tanque
+    CPR=0.7
+    Max_Omar=0;
+    if Pc<PoOx         
+        %Estado antes de los inyectores
+        M_Omega_Mod_guess=1;
+        Xh1=0;
+        Xh2=0;
+        dPOx=(PoOx-Pc)*.01;
+        dPFu=(PoFu-Pc)*.01;
+        mFu0=0.5;
+        mOx=0.5;
+        for m=1:10
+                                
+            P1Ox=PoOx-dPOx;
+            P1Fu=PoFu-dPFu;
+    
+            % sub enfriado supercargado
+            if P1Ox>=PNos0
+               PNos1=2.792*Te1^3 + -1527*Te1^2 + 2.898e+05*Te1 + -1.899e+07; % Presion de Vapor en el tanque                
+            % Saturado
+            else
+               PNos1=P1Ox;
+               Te1 = 268.2*exp((2.067e-08)*PNos1) +  (-64.09)*exp((-5.139e-07)*PNos1);
+            end
+    
+    
+            % Propiedades Termodinamicas del Oxidante en el tanque
+            Hl0 = (5.842e-16)*PNos1.^3 + (-8.466e-09)*PNos1.^2 + (0.06278).*PNos1 + -4.315e+05;
+            Vl0 = 0.000858*exp((8.077e-08)*PNos1) +  (9.149e-12)*exp((2.5e-06)*PNos1);
+            Hg0 = (-1.223e-47)*PNos1^8 + (3.658e-40)*PNos1^7 + (-4.626e-33)*PNos1^6 + (3.221e-26)*PNos1^5 + ...
+                  (-1.346e-19)*PNos1^4 + (3.452e-13)*PNos1^3 + (-5.306e-07)*PNos1^2 + (0.4495)*PNos1 + (-2.311e+05);
+            Sl0 = ( 2.44e-18)*PNos1^3 + (-3.679e-11)*PNos1^2 + (0.0002576)*PNos1 + (-248.2);
+            Vg0 =  0.09481*exp((-1.873e-06 )*PNos1) +  (0.03302)*exp((-3.344e-07)*PNos1);
+            Sg0 = (-1.296e-43)*PNos1^7 + (3.411e-36)*PNos1^6 + (-3.702e-29)*PNos1^5 + (2.141e-22)*PNos1^4 + ...
+                      (-7.116e-16)*PNos1^3 + (1.366e-09)*PNos1^2 + (-0.001477 )*PNos1 + (1919);
+            Cpg0 = 308.4*exp(0.005439*TOx) +  (6.942e-13)*exp(0.121 *TOx);
+            Cpl0 = 665*exp( 0.004254 *TOx) + (8.183e-10)*exp(0.09463  *TOx);
+    
+            
+    
+            %Calculo de la caida de Presion en tuberia y conectores
+            ReOx=4*M_Omega_Mod_guess/(3.14*DLineOx*Mul_Ox);              
+            AOx=( (kLineOx^1.1098)/2.8257)+(7.149/ReOx)^0.8981;
+            FdOx=0.25*log(kLineOx/3.706-5.04*log(AOx)/ReOx)^-2;
+            dPfOx=((M_Omega_Mod_guess/ALineOx)^2)*(2*FdOx*(Vl0+Xh1*(Vg0-Vl0)/2)/DLineOx + Xh1*(Vg0-Vl0));
+    
+            dPrOx=(dPfOx)*LLineOx;
+            dPOx=dPrOx;
+        
+            ReFu=4*mFu0/(3.14*DLineFu*Mul_Fu);              
+            AFu=( (kLineFu^1.1098)/2.8257)+(7.149/ReFu)^0.8981;
+            FdFu=0.25*log(kLineFu/3.706-5.04*log(AFu)/ReFu)^-2;
+            dPfFu=((mFu0/ALineFu)^2)*(2*FdFu*Vl0/DLineFu);
+    
+            dPFu=(dPfFu)*LLineFu;
+            mFu0=Cd*AInjFu*(2*(P1Fu-Pc)/RolFu)^0.5
+            % Propiedades Termodinamicas del Oxidante antes de los Inyectores
+    
+            Hl1 = (5.842e-16)*PNos1.^3 + (-8.466e-09)*PNos1.^2 + (0.06278).*PNos1 + -4.315e+05;
+            Vl1 = 0.000858*exp((8.077e-08)*PNos1) +  (9.149e-12)*exp((2.5e-06)*PNos1);
+            Hg1 = (-1.223e-47)*PNos1^8 + (3.658e-40)*PNos1^7 + (-4.626e-33)*PNos1^6 + (3.221e-26)*PNos1^5 + ...
+                  (-1.346e-19)*PNos1^4 + (3.452e-13)*PNos1^3 + (-5.306e-07)*PNos1^2 + (0.4495)*PNos1 + (-2.311e+05);
+            Sl1 = ( 2.44e-18)*PNos1^3 + (-3.679e-11)*PNos1^2 + (0.0002576)*PNos1 + (-248.2);
+            Vg1 =  0.09481*exp((-1.873e-06 )*PNos1) +  (0.03302)*exp((-3.344e-07)*PNos1);
+            Sg1 = (-1.296e-43)*PNos1^7 + (3.411e-36)*PNos1^6 + (-3.702e-29)*PNos1^5 + (2.141e-22)*PNos1^4 + ...
+                      (-7.116e-16)*PNos1^3 + (1.366e-09)*PNos1^2 + (-0.001477 )*PNos1 + (1919);
+            Cpg = 308.4*exp(0.005439*Te1) +  (6.942e-13)*exp(0.121 *Te1);
+            Cpl = 665*exp( 0.004254 *Te1) + (8.183e-10)*exp(0.09463  *Te1);
+    
+            % Propiedades Termodinamicas del Oxidante despues de los Inyectores
+    
+            Vl2 = Vl1;
+            Hl2 = Hl1;
+            Hg2 = Hg1;  
+            Sg2 = Sg1;
+            Sl2 = Sl1;
+            Vg2 = Vg1;
+            Te2 = Te1;
+            dSl2_dP = 3*( 2.44e-18)*PNos1^2 + 2*(-3.679e-11)*PNos1 + (0.0002576);
+    
+            %Solo habra un cambio de fase si la presion de la camara es
+            %menor que la presion de vapor. La caida de presion que primero
+            %ocurrira sera la de sobrecarga
+    
+            if Pc<=PNos1
+                Vl2 = 0.000858*exp((8.077e-08)*Pc) +  (9.149e-12)*exp((2.5e-06)*Pc);
+                Hl2 = (5.842e-16)*Pc.^3 + (-8.466e-09)*Pc.^2 + (0.06278).*Pc + -4.315e+05;
+                Hg2 = (-1.223e-47)*Pc^8 + (3.658e-40)*Pc^7 + (-4.626e-33)*Pc^6 + (3.221e-26)*Pc^5 + ...
+                      (-1.346e-19)*Pc^4 + (3.452e-13)*Pc^3 + (-5.306e-07)*Pc^2 + (0.4495)*Pc + (-2.311e+05);  
+                Sg2 = (-1.296e-43)*Pc^7 + (3.411e-36)*Pc^6 + (-3.702e-29)*Pc^5 + (2.141e-22)*Pc^4 + ...
+                      (-7.116e-16)*Pc^3 + (1.366e-09)*Pc^2 + (-0.001477 )*Pc + (1919);
+                Sl2 = ( 2.44e-18)*Pc^3 + (-3.679e-11)*Pc^2 + (0.0002576)*Pc + (-248.2);
+                Vg2 =  0.09481*exp((-1.873e-06 )*Pc) +  (0.03302)*exp((-3.344e-07)*Pc);
+                Te2 = 268.2*exp((2.067e-08)*Pc) +  (-64.09)*exp((-5.139e-07)*Pc);
+                dSl2_dP = 3*( 2.44e-18)*Pc^2 + 2*(-3.679e-11)*Pc + (0.0002576);
+            end
+            
+    
+            Xh1 = (Hl0-Hl1)./(Hg1-Hl1);          
+            Xh2 =       (Hl1-Hl2)./(Hg2-Hl2);   
+            % Omega
+            w=Cpl*Te1*PNos1*(1/Vl1)*((Vg1-Vl1)/(Hg1-Hl1))^2;
+            CPRs=2*w/(1+2*w);
+            PR=Pc/PoOx;
+            PRs=PNos1/PoOx;
+            CPR=CPR;
+            for n=1:10
+                CPR1=CPR;
+                CPR=exp(-(CPR^2 + (w^2-2*w)*(1-CPR)^2 + (2*w^2)*(1-CPR))/(2*w^2));
+                CPR=CPR*0.5+CPR1*0.5;
+            end
+            
+            % Low subcooled
+            if PNos1 >= CPRs*PoOx
+                G_Low=(( 2*(1-PRs) + 2*(w*PRs*log(PRs/PR)-(w-1)*(PRs-PR)) )^.5)*((PoOx/Vl1)^.5)/(w*(PRs/PR-1) + 1);
+                G_High=CPR*(PoOx/(w*Vl1))^.5;
+                G_Omega=(PNos1/PoOx)*G_High +(1-PNos1/PoOx)*G_Low;
+            
+            % High subcooled 
+            else
+                if Pc>=PNos1
+                G_Omega=(2*(PoOx-Pc)/Vl1)^.5;
+                else
+                G_Omega=(2*(PoOx-PNos1)/Vl1)^.5;
+                end
+            end         
+    
+            % Modelo Omar, isoentalpico considerando a entalpia de
+            % fluido comprimido
+            dHh=Hl1-(1-Xh2).*Hl2-Xh2.*Hg2 + (P1Ox- Pc)*((1-Xh2).*Vl2 + Xh2.*Vg2) 
+            Flujo_Omar= (2*dHh).^0.5./((1-Xh2).*Vl2 + Xh2.*Vg2);
+            
+            % Si el Pressure ratio es superior a Critico
+            [Pc P1Ox]
+            if Pc/P1Ox>=CPR
+                G_Omar=Flujo_Omar
+            % Si es menor se debe buscar el flujo maximo para su respectiva
+            % Po
+            else 
+                D_P=0.1*10^6
+                for PcI=P1Ox:D_P:P1Ox*(CPR-.1)
+                    Vl2I = 0.000858*exp((8.077e-08)*PcI) +  (9.149e-12)*exp((2.5e-06)*PcI);
+                    Hl2I = (5.842e-16)*PcI.^3 + (-8.466e-09)*PcI.^2 + (0.06278).*PcI + -4.315e+05;
+                    Hg2I = (-1.223e-47)*PcI^8 + (3.658e-40)*PcI^7 + (-4.626e-33)*PcI^6 + (3.221e-26)*PcI^5 + ...
+                      (-1.346e-19)*PcI^4 + (3.452e-13)*PcI^3 + (-5.306e-07)*PcI^2 + (0.4495)*PcI + (-2.311e+05);  
+                    Vg2I =  0.09481*exp((-1.873e-06 )*PcI) +  (0.03302)*exp((-3.344e-07)*PcI);
+                    Xh2I =       (Hl1-Hl2I)./(Hg2I-Hl2I);   
+ 
+                    dHhI=Hl1-(1-Xh2I).*Hl2I-Xh2I.*Hg2I + (P1Ox- PcI)*((1-Xh2I).*Vl2I + Xh2I.*Vg2I) 
+                    Flujo_OmarI= (2*dHhI).^0.5./((1-Xh2I).*Vl2I + Xh2I.*Vg2I)
+                    if Flujo_OmarI>=Max_Omar
+                        Max_Omar=Flujo_OmarI;
+                        G_Omar=Flujo_OmarI
+                    end
+  
+                end
+            end
+            
+            % Dyer
+            [m P1Ox Pc];
+            G_SPI=(2*(PoOx-Pc)/Vl1).^.5;       
+            k_Dyer=((P1Ox-Pc)/(PNos1-Pc))^.5;
+            if Pc>=PNos1
+                G_Dyer=G_SPI;
+            else
+                G_Dyer=k_Dyer*G_SPI/(k_Dyer+1)+G_Omar/(k_Dyer+1);
+            end  
+
+            % Omega Modificado
+            t=3.1416*.5*(P1Ox-Pc)/(P1Ox-P1Ox*CPR);
+            t1=sin(t)^.5;
+            t2=1-sin(t)^.5;
+            if Pc>=P1Ox*CPR            
+                M_Omega_Mod=G_Omega*t1+ G_Dyer*t2;
+            else
+                M_Omega_Mod=G_Omega;
+            end
+            M_Omega_Mod=Cd*AInjOx*M_Omega_Mod;
+            M_Omega_Mod_guess=real(M_Omega_Mod*0.5 + M_Omega_Mod_guess*0.5);
+        end
+    else
+        G_Omar=0;   
+        G_SPI=0;
+        G_Dyer=0;
+        M_Omega_Mod
+    end
+    mFu=mFu0;
+    mOx=M_Omega_Mod;
+end
